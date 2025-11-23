@@ -8,7 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 
     @Bean
-    public WebClient reviewClient() {
+    public WebClient reviewwebClient() {
         return WebClient.builder().baseUrl("http://localhost:8085") // reviewservice
                 .build();
     }
