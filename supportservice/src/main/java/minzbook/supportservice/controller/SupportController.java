@@ -58,4 +58,9 @@ public class SupportController {
     public String health() {
         return "Support service OK";
     }
+    @GetMapping("/conversations")
+public ResponseEntity<List<Conversation>> getAllConversations() {
+    return ResponseEntity.ok(supportService.getAllConversations());
+}
+
 }

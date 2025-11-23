@@ -84,4 +84,8 @@ public class SupportService {
         conv.setFechaActualizacion(LocalDateTime.now());
         return conversationRepository.save(conv);
     }
+    public List<Conversation> getAllConversations() {
+    return conversationRepository.findAll();
+}
+
 }

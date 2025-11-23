@@ -8,7 +8,8 @@
             "mainClass": "minzbook.authservice.AuthserviceApplication",
             "projectName": "authservice",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=56495 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=authservice"
         },
         {
             "type": "java",
@@ -17,6 +18,27 @@
             "cwd": "${workspaceFolder}",
             "mainClass": "minzbook.catalogservice.CatalogserviceApplication",
             "projectName": "minzbook-catalogservice",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=53102 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=minzbook-catalogservice"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-SupportserviceApplication<supportservice>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "minzbook.supportservice.SupportserviceApplication",
+            "projectName": "supportservice",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ReviewserviceApplication<reviewservice>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "minzbook.reviewservice.ReviewserviceApplication",
+            "projectName": "reviewservice",
             "args": "",
             "envFile": "${workspaceFolder}/.env"
         }
