@@ -33,13 +33,17 @@ public class BookController {
         return "Catalog service OK";
     }
 
-    // POST JSON normal (ya lo tenías)
+    // =========================
+    // CREAR LIBRO (JSON)
+    // =========================
     @PostMapping
     public ResponseEntity<BookResponse> create(@Valid @RequestBody BookRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(bookService.create(request));
     }
 
-    // 🔹 NUEVO: POST con imagen (multipart/form-data)
+    // =========================
+    // CREAR LIBRO CON IMAGEN
+    // =========================
     @PostMapping(
             path = "/with-image",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -59,7 +63,6 @@ public class BookController {
             imageUrl = imageStorageService.store(image);
         }
 
-        // Armamos el mismo BookRequest que usas en el POST normal
         BookRequest request = new BookRequest();
         request.setTitulo(titulo);
         request.setAutor(autor);
@@ -67,22 +70,31 @@ public class BookController {
         request.setDescripcion(descripcion);
         request.setPrecio(precio);
         request.setStock(stock);
-        request.setImagenUrl(imageUrl); // puede ser null si no se mandó imagen
+        request.setImagenUrl(imageUrl);
 
         BookResponse response = bookService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // =========================
+    // LISTAR TODOS
+    // =========================
     @GetMapping
     public ResponseEntity<List<BookResponse>> getAll() {
         return ResponseEntity.ok(bookService.getAll());
     }
 
+    // =========================
+    // OBTENER POR ID
+    // =========================
     @GetMapping("/{id}")
     public ResponseEntity<BookResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(bookService.getById(id));
     }
 
+    // =========================
+    // ACTUALIZAR
+    // =========================
     @PutMapping("/{id}")
     public ResponseEntity<BookResponse> update(
             @PathVariable Long id,
@@ -91,8 +103,20 @@ public class BookController {
         return ResponseEntity.ok(bookService.update(id, request));
     }
 
+    // =========================
+    // ELIMINAR (SOLO ADMIN)
+    // =========================
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(
+            @PathVariable Long id,
+            @RequestHeader("X-ROLE") String role
+    ) {
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body("Solo un ADMIN puede eliminar libros.");
+        }
+
         bookService.delete(id);
         return ResponseEntity.noContent().build();
     }

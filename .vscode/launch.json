@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-AuthserviceApplication<authservice>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "minzbook.authservice.AuthserviceApplication",
+            "projectName": "authservice",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-CatalogserviceApplication<minzbook-catalogservice>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "minzbook.catalogservice.CatalogserviceApplication",
+            "projectName": "minzbook-catalogservice",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
