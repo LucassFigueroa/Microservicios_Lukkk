@@ -83,7 +83,7 @@ class BookServiceTest {
         b2.setTitulo("Libro 2");
         b2.setActivo(true);
 
-        // 👇 tu servicio usa findByActivoTrue(), no findAll()
+
         when(bookRepository.findByActivoTrue()).thenReturn(Arrays.asList(b1, b2));
 
         List<BookResponse> list = bookService.getAll();
@@ -178,6 +178,6 @@ class BookServiceTest {
 
         Book saved = captor.getValue();
         assertEquals(7L, saved.getId());
-        assertFalse(saved.getActivo()); // 👈 borrado lógico
+        assertFalse(saved.getActivo()); 
     }
 }
