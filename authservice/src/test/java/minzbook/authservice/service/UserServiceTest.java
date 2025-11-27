@@ -3,8 +3,10 @@ package minzbook.authservice.service;
 import minzbook.authservice.dto.UserRegisterRequest;
 import minzbook.authservice.dto.UserLoginRequest;
 import minzbook.authservice.dto.UserResponse;
+import minzbook.authservice.model.RoleName;
 import minzbook.authservice.model.Role;
 import minzbook.authservice.model.User;
+import minzbook.authservice.repository.RoleRepository;
 import minzbook.authservice.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +14,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -25,6 +26,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -44,16 +48,21 @@ class UserServiceTest {
         request.setNombre("Lucas");
         request.setApellido("Figueroa");
 
+        Role userRole = new Role(1L, RoleName.ROLE_USER);
+
         when(userRepository.findByEmail("test@example.com"))
                 .thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123"))
                 .thenReturn("hashed-password");
+        when(roleRepository.findByName(RoleName.ROLE_USER))
+                .thenReturn(Optional.of(userRole));
 
         User savedUser = new User();
         savedUser.setEmail("test@example.com");
         savedUser.setNombre("Lucas");
         savedUser.setApellido("Figueroa");
-        savedUser.setRol(Role.USER);
+        savedUser.setRol(userRole); // El rol asignado
+
 
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
@@ -63,7 +72,7 @@ class UserServiceTest {
         assertEquals("test@example.com", response.getEmail());
         assertEquals("Lucas", response.getNombre());
         assertEquals("Figueroa", response.getApellido());
-        assertEquals("USER", response.getRol());
+        assertEquals("ROLE_USER", response.getRol());
 
         // se encripta la password
         verify(passwordEncoder).encode("password123");
@@ -109,22 +118,26 @@ class UserServiceTest {
         request.setNombre("Rol");
         request.setApellido("User");
 
+        Role userRole = new Role(1L, RoleName.ROLE_USER);
+
         when(userRepository.findByEmail("rol@test.com"))
                 .thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass"))
                 .thenReturn("hashed-pass");
+        when(roleRepository.findByName(RoleName.ROLE_USER))
+                .thenReturn(Optional.of(userRole));
 
         User saved = new User();
         saved.setEmail("rol@test.com");
         saved.setNombre("Rol");
         saved.setApellido("User");
-        saved.setRol(Role.USER);
+        saved.setRol(userRole);
 
         when(userRepository.save(any(User.class))).thenReturn(saved);
 
         UserResponse response = userService.register(request);
 
-        assertEquals("USER", response.getRol());
+        assertEquals("ROLE_USER", response.getRol());
     }
 
     // -------------------------------------------------------
@@ -137,12 +150,12 @@ class UserServiceTest {
         req.setEmail("login@test.com");
         req.setPassword("1234");
 
+        Role userRole = new Role(1L, RoleName.ROLE_USER);
         User user = new User();
         user.setEmail("login@test.com");
         user.setPasswordHash("hashed-pass");
-        user.setNombre("Lucas");
-        user.setApellido("Fig");
-        user.setRol(Role.USER);
+        user.setNombre("Lucas");        user.setApellido("Fig");
+        user.setRol(userRole);
 
         when(userRepository.findByEmail("login@test.com"))
                 .thenReturn(Optional.of(user));
@@ -155,7 +168,7 @@ class UserServiceTest {
         assertEquals("login@test.com", res.getEmail());
         assertEquals("Lucas", res.getNombre());
         assertEquals("Fig", res.getApellido());
-        assertEquals("USER", res.getRol());
+        assertEquals("ROLE_USER", res.getRol());
     }
 
     @Test
@@ -207,57 +220,43 @@ class UserServiceTest {
     void assignRole_actualizaRolCorrectamente() {
         // given
         Long userId = 1L;
-        String nuevoRol = "ADMIN";
-        String adminKey = "secret-key";
-        ReflectionTestUtils.setField(userService, "adminSecret", adminKey); // Inyectamos el valor del secret
+        String nuevoRolString = "ADMIN";
+
+        Role userRole = new Role(1L, RoleName.ROLE_USER);
+        Role adminRole = new Role(2L, RoleName.ROLE_ADMIN);
 
         User user = new User();
         user.setId(userId);
-        user.setRol(Role.USER);
+        user.setRol(userRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findByName(RoleName.ROLE_ADMIN)).thenReturn(Optional.of(adminRole));
 
         // when
-        userService.assignRole(userId, nuevoRol, adminKey);
+        userService.assignRole(userId, nuevoRolString);
 
         // then
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         User saved = captor.getValue();
 
-        assertEquals(Role.ADMIN, saved.getRol());
+        assertEquals(RoleName.ROLE_ADMIN, saved.getRol().getName());
     }
 
     @Test
     void assignRole_lanzaExcepcionCuandoUsuarioNoExiste() {
         // given
         Long userId = 99L;
-        String adminKey = "secret-key";
-        ReflectionTestUtils.setField(userService, "adminSecret", adminKey);
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // when + then
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
-                () -> userService.assignRole(userId, "ADMIN", adminKey)
+                () -> userService.assignRole(userId, "ADMIN")
         );
 
         assertNotNull(ex.getMessage());
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
-    void assignRole_lanzaExcepcionCuandoAdminKeyEsIncorrecta() {
-        // given
-        ReflectionTestUtils.setField(userService, "adminSecret", "secret-real");
-
-        // when + then
-        assertThrows(RuntimeException.class, () -> {
-            userService.assignRole(1L, "ADMIN", "secret-falsa");
-        });
-
-        verify(userRepository, never()).findById(anyLong());
         verify(userRepository, never()).save(any(User.class));
     }
 }

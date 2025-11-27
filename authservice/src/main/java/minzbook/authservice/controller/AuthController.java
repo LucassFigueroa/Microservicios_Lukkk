@@ -1,5 +1,6 @@
 package minzbook.authservice.controller;
 
+import minzbook.authservice.dto.MessageResponse;
 import minzbook.authservice.dto.UserRegisterRequest;
 import minzbook.authservice.dto.AssignRoleRequest;
 import minzbook.authservice.dto.UserLoginRequest;
@@ -7,12 +8,13 @@ import minzbook.authservice.dto.UserResponse;
 import minzbook.authservice.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
 public class AuthController {
 
@@ -42,12 +44,12 @@ public class AuthController {
 
     // ===== Solo ADMIN puede asignar roles =====
     @PatchMapping("/role/{userId}")
-    public ResponseEntity<?> assignRole(
+    @PreAuthorize("hasRole('ADMIN')") // Solo usuarios con rol ADMIN pueden acceder
+    public ResponseEntity<MessageResponse> assignRole(
             @PathVariable Long userId,
-            @RequestBody AssignRoleRequest request,
-            @RequestHeader("X-ADMIN-KEY") String adminKey
+            @RequestBody AssignRoleRequest request
     ) {
-        userService.assignRole(userId, request.getRol(), adminKey);
-        return ResponseEntity.ok("Rol actualizado correctamente");
+        userService.assignRole(userId, request.getRol());
+        return ResponseEntity.ok(new MessageResponse("Rol actualizado correctamente para el usuario " + userId));
     }
 }

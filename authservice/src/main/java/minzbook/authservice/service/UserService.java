@@ -3,29 +3,31 @@ package minzbook.authservice.service;
 import minzbook.authservice.dto.UserRegisterRequest;
 import minzbook.authservice.dto.UserLoginRequest;
 import minzbook.authservice.dto.UserResponse;
-import minzbook.authservice.model.User;
 import minzbook.authservice.model.Role;
+import minzbook.authservice.model.RoleName;
+import minzbook.authservice.model.User;
 import minzbook.authservice.repository.UserRepository;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import minzbook.authservice.repository.RoleRepository;
+
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${admin.secret}")
-    private String adminSecret;
-
     public UserService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.roleRepository = roleRepository;
     }
 
     // ============================
@@ -40,12 +42,18 @@ public class UserService {
             );
         }
 
+        Role userRole = roleRepository.findByName(RoleName.ROLE_USER)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "El rol de usuario por defecto no existe."
+                ));
+
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setNombre(request.getNombre());
         user.setApellido(request.getApellido());
-        user.setRol(Role.USER);
+        user.setRol(userRole);
         user.setActivo(true);
 
         User saved = userRepository.save(user);
@@ -85,32 +93,28 @@ public class UserService {
     // ============================
     // ASIGNAR ROL
     // ============================
-    public void assignRole(Long userId, String nuevoRol, String adminKey) {
-
-        if (!adminKey.equals(adminSecret)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "No autorizado. Solo un ADMIN puede asignar roles."
-            );
-        }
-
+    public void assignRole(Long userId, String nuevoRol) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Usuario no encontrado"
                 ));
 
-        Role rolEnum;
+        RoleName roleNameEnum;
         try {
-            rolEnum = Role.valueOf(nuevoRol.toUpperCase());
+            // Construimos el nombre completo del rol, ej: "ROLE_ADMIN" a partir de "admin"
+            roleNameEnum = RoleName.valueOf("ROLE_" + nuevoRol.toUpperCase());
         } catch (Exception e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Rol inválido. Usa USER, SUPPORT o ADMIN."
             );
         }
-
-        user.setRol(rolEnum);
+        Role role = roleRepository.findByName(roleNameEnum)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "El rol " + nuevoRol.toUpperCase() + " no está configurado en la base de datos."
+                ));
+        user.setRol(role);
         userRepository.save(user);
     }
 
@@ -123,7 +127,7 @@ public class UserService {
         dto.setEmail(user.getEmail());
         dto.setNombre(user.getNombre());
         dto.setApellido(user.getApellido());
-        dto.setRol(user.getRol().name());
+        dto.setRol(user.getRol().getName().name());
         return dto;
     }
 }
