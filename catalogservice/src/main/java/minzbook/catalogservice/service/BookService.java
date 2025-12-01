@@ -6,6 +6,7 @@ import minzbook.catalogservice.model.Book;
 import minzbook.catalogservice.repository.BookRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,25 +15,33 @@ public class BookService {
 
     private final BookRepository bookRepository;
 
-    public BookService(BookRepository bookRepository) {
-        this.bookRepository = bookRepository;
+    public BookService(BookRepository repo) {
+        this.bookRepository = repo;
     }
 
-    public BookResponse create(BookRequest request) {
+    // ========== CREATE ==========
+    public BookResponse create(BookRequest req) {
         Book book = new Book();
-        book.setTitulo(request.getTitulo());
-        book.setAutor(request.getAutor());
-        book.setDescripcion(request.getDescripcion());
-        book.setPrecio(request.getPrecio());
-        book.setStock(request.getStock());
-        book.setCategoria(request.getCategoria());
-        book.setImagenUrl(request.getImagenUrl());
+
+        book.setTitulo(req.getTitulo());
+        book.setAutor(req.getAutor());
+        book.setDescripcion(req.getDescripcion());
+        book.setPrecio(req.getPrecio());
+        book.setStock(req.getStock());
+        book.setCategoria(req.getCategoria());
         book.setActivo(true);
+
+        // Manejo del BLOB
+        if (req.getPortadaBase64() != null) {
+            book.setPortada(Base64.getDecoder().decode(req.getPortadaBase64()));
+            book.setPortadaContentType(req.getPortadaContentType());
+        }
 
         Book saved = bookRepository.save(book);
         return toResponse(saved);
     }
 
+    // ========== GET ALL ==========
     public List<BookResponse> getAll() {
         return bookRepository.findByActivoTrue()
                 .stream()
@@ -40,28 +49,35 @@ public class BookService {
                 .collect(Collectors.toList());
     }
 
+    // ========== GET BY ID ==========
     public BookResponse getById(Long id) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
 
         return toResponse(book);
     }
-    public BookResponse update(Long id, BookRequest request) {
+
+    // ========== UPDATE ==========
+    public BookResponse update(Long id, BookRequest req) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
 
-        book.setTitulo(request.getTitulo());
-        book.setAutor(request.getAutor());
-        book.setDescripcion(request.getDescripcion());
-        book.setPrecio(request.getPrecio());
-        book.setStock(request.getStock());
-        book.setCategoria(request.getCategoria());
-        book.setImagenUrl(request.getImagenUrl());
+        book.setTitulo(req.getTitulo());
+        book.setAutor(req.getAutor());
+        book.setDescripcion(req.getDescripcion());
+        book.setPrecio(req.getPrecio());
+        book.setStock(req.getStock());
+        book.setCategoria(req.getCategoria());
 
-        Book updated = bookRepository.save(book);
-        return toResponse(updated);
+        if (req.getPortadaBase64() != null) {
+            book.setPortada(Base64.getDecoder().decode(req.getPortadaBase64()));
+            book.setPortadaContentType(req.getPortadaContentType());
+        }
+
+        return toResponse(bookRepository.save(book));
     }
 
+    // ========== DELETE (lógico) ==========
     public void delete(Long id) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
@@ -69,17 +85,25 @@ public class BookService {
         book.setActivo(false);
         bookRepository.save(book);
     }
+
+    // ========== MAPEADOR ==========
     private BookResponse toResponse(Book book) {
-        BookResponse dto = new BookResponse();
-        dto.setId(book.getId());
-        dto.setTitulo(book.getTitulo());
-        dto.setAutor(book.getAutor());
-        dto.setDescripcion(book.getDescripcion());
-        dto.setPrecio(book.getPrecio());
-        dto.setStock(book.getStock());
-        dto.setCategoria(book.getCategoria());
-        dto.setImagenUrl(book.getImagenUrl());
-        dto.setActivo(book.getActivo());
-        return dto;
+        BookResponse res = new BookResponse();
+
+        res.setId(book.getId());
+        res.setTitulo(book.getTitulo());
+        res.setAutor(book.getAutor());
+        res.setDescripcion(book.getDescripcion());
+        res.setPrecio(book.getPrecio());
+        res.setStock(book.getStock());
+        res.setCategoria(book.getCategoria());
+        res.setActivo(book.getActivo());
+
+        if (book.getPortada() != null) {
+            res.setPortadaBase64(Base64.getEncoder().encodeToString(book.getPortada()));
+            res.setPortadaContentType(book.getPortadaContentType());
+        }
+
+        return res;
     }
 }

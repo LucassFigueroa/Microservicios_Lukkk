@@ -1,57 +1,31 @@
 package minzbook.catalogservice.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
-@Table(name = "books")
+@Getter
+@Setter
 public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private String titulo;
-
     private String autor;
-
-    @Column(length = 2000)
     private String descripcion;
-
     private Double precio;
-
     private Integer stock;
-
     private String categoria;
-
-    private String imagenUrl;
 
     private Boolean activo = true;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    // ========== PORTADA EN BLOB ==========
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] portada;
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
-
-    public String getAutor() { return autor; }
-    public void setAutor(String autor) { this.autor = autor; }
-
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-
-    public Double getPrecio() { return precio; }
-    public void setPrecio(Double precio) { this.precio = precio; }
-
-    public Integer getStock() { return stock; }
-    public void setStock(Integer stock) { this.stock = stock; }
-
-    public String getCategoria() { return categoria; }
-    public void setCategoria(String categoria) { this.categoria = categoria; }
-
-    public String getImagenUrl() { return imagenUrl; }
-    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
-
-    public Boolean getActivo() { return activo; }
-    public void setActivo(Boolean activo) { this.activo = activo; }
+    private String portadaContentType; // ej: "image/jpeg"
 }

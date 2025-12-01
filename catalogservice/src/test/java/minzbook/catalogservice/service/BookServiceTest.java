@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,7 +32,7 @@ class BookServiceTest {
     // CREATE
     // =========================
     @Test
-    void create_guardaYRetornaBookResponse() {
+    void create_guardaYRetornaBookResponse_conPortada() {
         BookRequest request = new BookRequest();
         request.setTitulo("Libro Test");
         request.setAutor("Autor Test");
@@ -39,6 +40,8 @@ class BookServiceTest {
         request.setPrecio(9990.0);
         request.setStock(5);
         request.setCategoria("Ficción");
+        request.setPortadaBase64("dGVzdA=="); // "test"
+        request.setPortadaContentType("image/jpeg");
 
         Book saved = new Book();
         saved.setId(1L);
@@ -49,6 +52,8 @@ class BookServiceTest {
         saved.setStock(request.getStock());
         saved.setCategoria(request.getCategoria());
         saved.setActivo(true);
+        saved.setPortada(Base64.getDecoder().decode("dGVzdA=="));
+        saved.setPortadaContentType("image/jpeg");
 
         when(bookRepository.save(any(Book.class))).thenReturn(saved);
 
@@ -58,6 +63,8 @@ class BookServiceTest {
         assertEquals(1L, response.getId());
         assertEquals("Libro Test", response.getTitulo());
         assertEquals("Autor Test", response.getAutor());
+        assertEquals("image/jpeg", response.getPortadaContentType());
+        assertEquals("dGVzdA==", response.getPortadaBase64());
 
         ArgumentCaptor<Book> captor = ArgumentCaptor.forClass(Book.class);
         verify(bookRepository).save(captor.capture());
@@ -66,6 +73,8 @@ class BookServiceTest {
         assertEquals("Libro Test", toSave.getTitulo());
         assertEquals("Autor Test", toSave.getAutor());
         assertTrue(toSave.getActivo());
+        assertNotNull(toSave.getPortada());
+        assertEquals("image/jpeg", toSave.getPortadaContentType());
     }
 
     // =========================
@@ -82,7 +91,6 @@ class BookServiceTest {
         b2.setId(2L);
         b2.setTitulo("Libro 2");
         b2.setActivo(true);
-
 
         when(bookRepository.findByActivoTrue()).thenReturn(Arrays.asList(b1, b2));
 
@@ -121,20 +129,29 @@ class BookServiceTest {
     // UPDATE
     // =========================
     @Test
-    void update_ok() {
+    void update_ok_actualizaDatosYPortada() {
         Book existing = new Book();
         existing.setId(5L);
         existing.setTitulo("Viejo");
+        existing.setAutor("Autor viejo");
+        existing.setActivo(true);
 
         BookRequest req = new BookRequest();
         req.setTitulo("Nuevo");
+        req.setAutor("Autor nuevo");
+        req.setDescripcion("Desc");
         req.setPrecio(1500.0);
         req.setStock(3);
         req.setCategoria("Ficción");
+        req.setPortadaBase64("dGVzdA==");
+        req.setPortadaContentType("image/png");
 
         Book updated = new Book();
         updated.setId(5L);
         updated.setTitulo("Nuevo");
+        updated.setAutor("Autor nuevo");
+        updated.setPortada(Base64.getDecoder().decode("dGVzdA=="));
+        updated.setPortadaContentType("image/png");
 
         when(bookRepository.findById(5L)).thenReturn(Optional.of(existing));
         when(bookRepository.save(any(Book.class))).thenReturn(updated);
@@ -143,6 +160,9 @@ class BookServiceTest {
 
         assertEquals(5L, res.getId());
         assertEquals("Nuevo", res.getTitulo());
+        assertEquals("Autor nuevo", res.getAutor());
+        assertEquals("image/png", res.getPortadaContentType());
+        assertEquals("dGVzdA==", res.getPortadaBase64());
     }
 
     @Test
@@ -178,6 +198,6 @@ class BookServiceTest {
 
         Book saved = captor.getValue();
         assertEquals(7L, saved.getId());
-        assertFalse(saved.getActivo()); 
+        assertFalse(saved.getActivo());
     }
 }

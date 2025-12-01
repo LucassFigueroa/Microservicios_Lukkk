@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import minzbook.catalogservice.dto.BookRequest;
 import minzbook.catalogservice.dto.BookResponse;
 import minzbook.catalogservice.service.BookService;
-import minzbook.catalogservice.service.ImageStorageService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -13,6 +12,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Base64;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,15 +36,12 @@ class BookControllerTest {
     @MockBean
     private BookService bookService;
 
-    @MockBean
-    private ImageStorageService imageStorageService;
-
     @Autowired
     private ObjectMapper mapper;
 
     @Test
     void health_ok() throws Exception {
-        mockMvc.perform(get("/catalog/books/health"))
+        mockMvc.perform(get("/api/catalog/books/health"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Catalog service OK"));
     }
@@ -61,7 +58,7 @@ class BookControllerTest {
 
         when(bookService.getAll()).thenReturn(List.of(b1, b2));
 
-        mockMvc.perform(get("/catalog/books"))
+        mockMvc.perform(get("/api/catalog/books"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].titulo").value("Libro 1"))
@@ -76,7 +73,7 @@ class BookControllerTest {
 
         when(bookService.getById(10L)).thenReturn(res);
 
-        mockMvc.perform(get("/catalog/books/10"))
+        mockMvc.perform(get("/api/catalog/books/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.titulo").value("Libro 10"));
@@ -84,39 +81,52 @@ class BookControllerTest {
 
     @Test
     void create_ok() throws Exception {
+        // request con portada base64
         BookRequest req = new BookRequest();
         req.setTitulo("Nuevo libro");
         req.setAutor("Autor X");
+        req.setDescripcion("Desc");
         req.setPrecio(1000.0);
         req.setStock(5);
         req.setCategoria("Ficción");
+        req.setPortadaBase64("dGVzdA=="); // "test" en base64
+        req.setPortadaContentType("image/png");
 
         BookResponse res = new BookResponse();
         res.setId(1L);
         res.setTitulo("Nuevo libro");
         res.setAutor("Autor X");
         res.setPrecio(1000.0);
+        res.setCategoria("Ficción");
+        res.setPortadaBase64("dGVzdA==");
+        res.setPortadaContentType("image/png");
 
         when(bookService.create(any(BookRequest.class))).thenReturn(res);
 
         mockMvc.perform(
-                post("/catalog/books")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(req))
-        )
+                        post("/api/catalog/books")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(mapper.writeValueAsString(req))
+                )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.titulo").value("Nuevo libro"))
-                .andExpect(jsonPath("$.autor").value("Autor X"));
+                .andExpect(jsonPath("$.autor").value("Autor X"))
+                .andExpect(jsonPath("$.portadaBase64").value("dGVzdA=="))
+                .andExpect(jsonPath("$.portadaContentType").value("image/png"));
     }
 
     @Test
     void update_ok() throws Exception {
         BookRequest req = new BookRequest();
         req.setTitulo("Actualizado");
+        req.setAutor("Autor Y");
+        req.setDescripcion("Desc nueva");
         req.setPrecio(1500.0);
         req.setStock(3);
         req.setCategoria("Ficción");
+        req.setPortadaBase64(null);
+        req.setPortadaContentType(null);
 
         BookResponse res = new BookResponse();
         res.setId(5L);
@@ -126,10 +136,10 @@ class BookControllerTest {
         when(bookService.update(eq(5L), any(BookRequest.class))).thenReturn(res);
 
         mockMvc.perform(
-                put("/catalog/books/5")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(req))
-        )
+                        put("/api/catalog/books/5")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(mapper.writeValueAsString(req))
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.titulo").value("Actualizado"))
@@ -139,9 +149,9 @@ class BookControllerTest {
     @Test
     void delete_forbiddenWhenNotAdmin() throws Exception {
         mockMvc.perform(
-                delete("/catalog/books/7")
-                        .header("X-ROLE", "USER")
-        )
+                        delete("/api/catalog/books/7")
+                                .header("X-ROLE", "USER")
+                )
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("Solo un ADMIN puede eliminar libros."));
     }
@@ -151,9 +161,9 @@ class BookControllerTest {
         doNothing().when(bookService).delete(7L);
 
         mockMvc.perform(
-                delete("/catalog/books/7")
-                        .header("X-ROLE", "ADMIN")
-        )
+                        delete("/api/catalog/books/7")
+                                .header("X-ROLE", "ADMIN")
+                )
                 .andExpect(status().isNoContent());
 
         verify(bookService).delete(7L);
