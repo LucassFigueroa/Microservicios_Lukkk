@@ -4,8 +4,10 @@ import minzbook.catalogservice.dto.BookRequest;
 import minzbook.catalogservice.dto.BookResponse;
 import minzbook.catalogservice.service.BookService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.List;
 
@@ -42,6 +44,27 @@ public class BookController {
     @GetMapping("/{id}")
     public BookResponse getById(@PathVariable Long id) {
         return bookService.getById(id);
+    }
+
+    // =========================
+    // ⚠ NUEVO: OBTENER PORTADA (BLOB)
+    // =========================
+    @GetMapping("/{id}/cover")
+    public ResponseEntity<byte[]> getCover(@PathVariable Long id) {
+        byte[] data = bookService.getCoverBytes(id);
+        if (data == null || data.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String contentType = bookService.getCoverContentType(id);
+        MediaType mediaType = (contentType != null && !contentType.isBlank())
+                ? MediaType.parseMediaType(contentType)
+                : MediaType.IMAGE_JPEG;
+
+        return ResponseEntity
+                .ok()
+                .contentType(mediaType)
+                .body(data);
     }
 
     // =========================

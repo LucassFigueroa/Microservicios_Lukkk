@@ -85,6 +85,20 @@ public class BookService {
         book.setActivo(false);
         bookRepository.save(book);
     }
+    // dentro de BookService
+
+    public byte[] getCoverBytes(Long id) {
+    Book book = bookRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Libro no encontrado: " + id));
+    return book.getPortada();
+    }
+
+    public String getCoverContentType(Long id) {
+    Book book = bookRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Libro no encontrado: " + id));
+    return book.getPortadaContentType();
+    }
+
 
     // ========== MAPEADOR ==========
     private BookResponse toResponse(Book book) {
